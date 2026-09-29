@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listCards, listEdges, newId } from "@/lib/data";
+import { listCards, listEdges, newId, saveAskSession } from "@/lib/data";
 import { detectContextGaps, diagnose, recall } from "@/lib/hindsight";
 import type { AskSession, Channel } from "@/lib/types";
 
@@ -50,6 +50,9 @@ export async function POST(req: Request) {
     created_at: new Date().toISOString(),
     resolved_at: null,
   };
+
+  // Persist so /api/retain can find this session and close the loop later.
+  await saveAskSession(session);
 
   return NextResponse.json({ needs_context: false, session, ranked: result.ranked.map((r) => ({ id: r.card.id, title: r.card.title, score: r.score })), related: result.related.map((r) => ({ relation: r.edge.relation, card: r.other.id, title: r.other.title })) });
 }

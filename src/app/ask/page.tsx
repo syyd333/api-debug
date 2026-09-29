@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { AskSession, Citation } from "@/lib/types";
+import { EXAMPLE_BUGS } from "@/lib/examples";
 
 interface Gap {
   key: string;
@@ -22,6 +23,14 @@ interface AskResponse {
 
 const CONTEXT_KEYS = ["service", "environment", "status_code", "message", "changed_recently", "payload_snippet", "auth_flow"];
 
+const STAGES = [
+  { key: "gaps", label: "Checking for missing context" },
+  { key: "recall", label: "Scanning retained memory" },
+  { key: "rank", label: "Ranking knowledge cards" },
+  { key: "citations", label: "Assembling citations" },
+  { key: "done", label: "Diagnosis ready" },
+] as const;
+
 export default function AskPage() {
   const [question, setQuestion] = useState("");
   const [context, setContext] = useState<Record<string, string>>({});
@@ -31,32 +40,80 @@ export default function AskPage() {
   const [related, setRelated] = useState<AskResponse["related"]>([]);
   const [phase, setPhase] = useState<"question" | "context" | "answer">("question");
   const [busy, setBusy] = useState(false);
+  const [stageIdx, setStageIdx] = useState(0);
+  const [activeExample, setActiveExample] = useState<string | null>(null);
   const [outcome, setOutcome] = useState("");
   const [worked, setWorked] = useState(true);
   const [retained, setRetained] = useState(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  async function submitQuestion() {
-    if (!question.trim()) return;
+  // Clear any pending stage timers when unmounting mid-run.
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
+
+  /** Run the staged pipeline: real fetch, animated stages, min ~3s so the
+   *  prototype visibly "works on it" before revealing the cited answer. */
+  function runPipeline() {
     setBusy(true);
-    try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question, context }),
-      });
-      const data: AskResponse = await res.json();
-      if (data.needs_context && data.gaps) {
-        setGaps(data.gaps);
-        setPhase("context");
-      } else if (data.session) {
-        setSession(data.session);
-        setRanked(data.ranked ?? []);
-        setRelated(data.related ?? []);
-        setPhase("answer");
-      }
-    } finally {
-      setBusy(false);
-    }
+    setStageIdx(0);
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+
+    const advance = (i: number, delay: number, after?: () => void) => {
+      timersRef.current.push(setTimeout(() => { setStageIdx(i); after?.(); }, delay));
+    };
+
+    advance(1, 900);  // scanning memory
+    advance(2, 1800); // ranking
+    advance(3, 2600); // citations
+
+    const start = Date.now();
+    fetch("/api/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question, context }),
+    })
+      .then((r) => r.json())
+      .then((data: AskResponse) => {
+        const show = () => {
+          setStageIdx(4);
+          timersRef.current.push(
+            setTimeout(() => {
+              if (data.needs_context && data.gaps) {
+                setGaps(data.gaps);
+                setPhase("context");
+              } else if (data.session) {
+                setSession(data.session);
+                setRanked(data.ranked ?? []);
+                setRelated(data.related ?? []);
+                setPhase("answer");
+              }
+              setBusy(false);
+            }, 600),
+          );
+        };
+        // Enforce a minimum showtime so the pipeline is visible even on instant responses.
+        const elapsed = Date.now() - start;
+        timersRef.current.push(setTimeout(show, Math.max(0, 3200 - elapsed)));
+      })
+      .catch(() => setBusy(false));
+  }
+
+  function submitQuestion() {
+    if (!question.trim() || busy) return;
+    runPipeline();
+  }
+
+  function loadExample(exId: string) {
+    const ex = EXAMPLE_BUGS.find((e) => e.id === exId);
+    if (!ex || busy) return;
+    setActiveExample(exId);
+    setQuestion(ex.question);
+    setContext(ex.context);
+    setGaps([]);
+    setSession(null);
+    setOutcome("");
+    setRetained(false);
+    setPhase("question");
   }
 
   async function retain() {
@@ -74,6 +131,8 @@ export default function AskPage() {
     }
   }
 
+  const activeEx = EXAMPLE_BUGS.find((e) => e.id === activeExample);
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="animate-fade-up">
@@ -84,13 +143,48 @@ export default function AskPage() {
         </p>
       </header>
 
+      {/* Example bugs */}
+      <section className="animate-fade-up-1">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-400">Try an example bug</h2>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {EXAMPLE_BUGS.map((ex) => (
+            <button
+              key={ex.id}
+              onClick={() => loadExample(ex.id)}
+              disabled={busy}
+              title={`${ex.teaser} → recalls ${ex.expectedConfidence}-confidence card`}
+              className={`group flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition-all duration-200 disabled:opacity-50 ${
+                activeExample === ex.id
+                  ? "border-teal-500 bg-teal-50 shadow-sm"
+                  : "border-[#e7e0d2] bg-white hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
+              }`}
+            >
+              <span className="text-base transition-transform duration-200 group-hover:scale-110">{ex.emoji}</span>
+              <span>
+                <span className="block font-medium text-stone-700">{ex.label}</span>
+                <span className="block text-[11px] text-stone-400">{ex.teaser}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        {activeEx && phase === "question" && (
+          <p className="mt-2 text-xs text-stone-500">
+            Loaded <span className="font-medium text-teal-700">{activeEx.label}</span> — context pre-filled. Hit{" "}
+            <span className="font-medium">Diagnose →</span> to watch the hindsight pipeline recall the fix.
+            {activeEx.expectedConfidence === "medium" && (
+              <> This one deliberately recalls at <span className="chip chip-amber mx-0.5">medium</span> confidence so you can compare.</>
+            )}
+          </p>
+        )}
+      </section>
+
       {phase === "question" && (
-        <section className="animate-fade-up-1 space-y-3">
+        <section className="animate-fade-up-2 space-y-3">
           <textarea
             value={question}
-            onChange={(e) => setQuestion(e.target.value)}
+            onChange={(e) => { setQuestion(e.target.value); if (activeExample) setActiveExample(null); }}
             rows={4}
-            placeholder="e.g. Stripe webhooks return 400 in prod after the ingress change — signature error every time."
+            placeholder="Describe the bug — or click an example above to pre-fill everything."
             className="input resize-none p-4 leading-relaxed"
           />
           <details className="panel p-4 text-sm">
@@ -111,8 +205,42 @@ export default function AskPage() {
             </div>
           </details>
           <button onClick={submitQuestion} disabled={busy || !question.trim()} className="btn btn-primary">
-            {busy ? "Thinking…" : "Diagnose →"}
+            {busy ? "Working…" : "Diagnose →"}
           </button>
+        </section>
+      )}
+
+      {/* Staged pipeline animation */}
+      {busy && (
+        <section className="panel animate-fade-up p-5">
+          <div className="flex items-center gap-2 text-sm font-medium text-stone-700">
+            <span className="inline-block h-2 w-2 animate-ping rounded-full bg-teal-500" />
+            Deja Fix is working on it…
+          </div>
+          <ol className="mt-4 space-y-2.5">
+            {STAGES.map((s, i) => {
+              const state = i < stageIdx ? "done" : i === stageIdx ? "active" : "pending";
+              return (
+                <li key={s.key} className="flex items-center gap-3 text-sm">
+                  <span
+                    className={`grid h-5 w-5 place-items-center rounded-full border text-[10px] transition-all duration-500 ${
+                      state === "done"
+                        ? "border-teal-500 bg-teal-500 text-white"
+                        : state === "active"
+                          ? "border-teal-500 text-teal-700"
+                          : "border-[#e7e0d2] text-stone-300"
+                    }`}
+                  >
+                    {state === "done" ? "✓" : i + 1}
+                  </span>
+                  <span className={`transition-colors duration-500 ${state === "done" ? "text-stone-400" : state === "active" ? "font-medium text-teal-800" : "text-stone-300"}`}>
+                    {s.label}
+                  </span>
+                  {state === "active" && <span className="ml-1 inline-block h-1 w-1 animate-pulse rounded-full bg-teal-500" />}
+                </li>
+              );
+            })}
+          </ol>
         </section>
       )}
 
@@ -149,6 +277,7 @@ export default function AskPage() {
                 {session.confidence}
               </span>
               <span className="text-xs text-stone-400">every claim below is cited</span>
+              {activeEx && <span className="chip chip-accent ml-auto">example: {activeEx.label}</span>}
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-stone-700">{session.answer}</p>
           </div>

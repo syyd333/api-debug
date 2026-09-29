@@ -159,8 +159,9 @@ export function buildCitations(card: KnowledgeCard, tokens: string[], max: numbe
   const scored = candidates
     .map((c) => {
       const cq = tokenize(c.quote);
-      const overlap = tokens.filter((t) => cq.includes(t)).length;
-      return { ...c, score: overlap / Math.max(cq.length, 1) };
+      const uniqueTokens = new Set(tokens);
+      const overlap = [...uniqueTokens].filter((t) => cq.includes(t)).length;
+      return { ...c, score: Math.min(1, overlap / Math.max(cq.length, 1)) };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, max);

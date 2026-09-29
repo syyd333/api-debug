@@ -60,20 +60,34 @@ const TABLES = {
   reputation: "reputation_ledger",
 } as const;
 
+// ─── Runtime fallback store ─────────────────────────────────────────────────
+// Supabase is the source of truth, but when it is unreachable we still keep
+// writes in server memory so the prototype works end-to-end (e.g. ask → retain).
+
+const runtimeCards = new Map<string, KnowledgeCard>();
+const runtimeAsks = new Map<string, AskSession>();
+const runtimeEvents: ChannelEvent[] = [];
+
 // ─── Cards ───────────────────────────────────────────────────────────────────
 
 export async function listCards(): Promise<KnowledgeCard[]> {
   const sb = getSupabase();
-  if (!sb) return DEMO_CARDS;
-  const { data, error } = await sb.from(TABLES.cards).select("*").order("updated_at", { ascending: false });
-  if (error || !data) {
+  if (sb) {
+    const { data, error } = await sb.from(TABLES.cards).select("*").order("updated_at", { ascending: false });
+    if (!error && data) {
+      // overlay runtime mutations (review/retain changes) onto DB rows
+      const db = data as KnowledgeCard[];
+      return db.map((c) => runtimeCards.get(c.id) ?? c);
+    }
     console.warn("[deja-fix] Supabase cards unavailable, using demo store:", error?.message);
-    return DEMO_CARDS;
   }
-  return data as KnowledgeCard[];
+  return [...runtimeCards.values(), ...DEMO_CARDS.filter((d) => !runtimeCards.has(d.id))]
+    .sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
 }
 
 export async function getCard(id: string): Promise<KnowledgeCard | null> {
+  const runtime = runtimeCards.get(id);
+  if (runtime) return runtime;
   const sb = getSupabase();
   if (!sb) return DEMO_CARDS.find((c) => c.id === id) ?? null;
   const { data, error } = await sb.from(TABLES.cards).select("*").eq("id", id).maybeSingle();
@@ -85,9 +99,11 @@ export async function getCard(id: string): Promise<KnowledgeCard | null> {
 }
 
 export async function upsertCard(card: KnowledgeCard): Promise<void> {
+  runtimeCards.set(card.id, card);
   const sb = getSupabase();
-  if (!sb) return; // demo mode: mutations live in server memory per-request
-  await sb.from(TABLES.cards).upsert(card);
+  if (!sb) return;
+  const { error } = await sb.from(TABLES.cards).upsert(card);
+  if (error) console.warn("[deja-fix] card write kept in memory only:", error.message);
 }
 
 // ─── Edges ───────────────────────────────────────────────────────────────────
@@ -110,32 +126,47 @@ export async function createEdge(edge: MemoryEdge): Promise<void> {
 
 export async function listAsks(): Promise<AskSession[]> {
   const sb = getSupabase();
-  if (!sb) return DEMO_ASKS;
-  const { data, error } = await sb.from(TABLES.asks).select("*").order("created_at", { ascending: false });
-  if (error || !data) return DEMO_ASKS;
-  return data as AskSession[];
+  if (sb) {
+    const { data, error } = await sb.from(TABLES.asks).select("*").order("created_at", { ascending: false });
+    if (!error && data) {
+      const db = data as AskSession[];
+      const dbIds = new Set(db.map((a) => a.id));
+      return [...[...runtimeAsks.values()].filter((a) => !dbIds.has(a.id)), ...db];
+    }
+  }
+  return [...runtimeAsks.values(), ...DEMO_ASKS.filter((d) => !runtimeAsks.has(d.id))].sort((a, b) =>
+    a.created_at < b.created_at ? 1 : -1,
+  );
 }
 
 export async function saveAskSession(session: AskSession): Promise<void> {
+  runtimeAsks.set(session.id, session); // always retained in memory first
   const sb = getSupabase();
   if (!sb) return;
-  await sb.from(TABLES.asks).upsert(session);
+  const { error } = await sb.from(TABLES.asks).upsert(session);
+  if (error) console.warn("[deja-fix] ask session kept in memory only:", error.message);
 }
 
 // ─── Channel events ─────────────────────────────────────────────────────────
 
 export async function listEvents(): Promise<ChannelEvent[]> {
   const sb = getSupabase();
-  if (!sb) return DEMO_EVENTS;
-  const { data, error } = await sb.from(TABLES.events).select("*").order("created_at", { ascending: false }).limit(30);
-  if (error || !data) return DEMO_EVENTS;
-  return data as ChannelEvent[];
+  if (sb) {
+    const { data, error } = await sb.from(TABLES.events).select("*").order("created_at", { ascending: false }).limit(30);
+    if (!error && data) return data as ChannelEvent[];
+  }
+  return [...runtimeEvents, ...DEMO_EVENTS]
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .slice(0, 30);
 }
 
 export async function logEvent(event: ChannelEvent): Promise<void> {
+  runtimeEvents.unshift(event);
+  if (runtimeEvents.length > 100) runtimeEvents.pop();
   const sb = getSupabase();
   if (!sb) return;
-  await sb.from(TABLES.events).insert(event);
+  const { error } = await sb.from(TABLES.events).insert(event);
+  if (error) console.warn("[deja-fix] event kept in memory only:", error.message);
 }
 
 // ─── Versions + permissions (per card) ──────────────────────────────────────
@@ -195,13 +226,12 @@ export async function awardReputation(entry: ReputationLedger): Promise<void> {
 }
 
 export async function voteCard(cardId: string, delta: 1 | -1, voter: string): Promise<void> {
+  const card = await getCard(cardId);
+  if (!card) return;
+  const next = { ...card, vote_score: card.vote_score + delta };
+  await upsertCard(next);
   const sb = getSupabase();
-  if (sb) {
-    await sb.rpc("vote_card", { p_card_id: cardId, p_delta: delta, p_voter: voter });
-    return;
-  }
-  const card = DEMO_CARDS.find((c) => c.id === cardId);
-  if (card) card.vote_score += delta;
+  if (sb) await sb.rpc("vote_card", { p_card_id: cardId, p_delta: delta, p_voter: voter }).then(() => {}, () => {});
 }
 
 // ─── Review loop ────────────────────────────────────────────────────────────

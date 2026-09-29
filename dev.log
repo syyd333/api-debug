@@ -319,3 +319,82 @@ https://react.dev/link/hydration-mismatch
  GET /api/cards 200 in 138ms (next.js: 6ms, application-code: 132ms)
 [deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
  GET / 200 in 496ms (next.js: 7ms, application-code: 489ms)
+ GET /ask 200 in 764ms (next.js: 106ms, application-code: 658ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ GET / 200 in 980ms (next.js: 14ms, application-code: 966ms)
+✓ Compiled in 279ms
+✓ Compiled in 702ms
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ GET /ask 200 in 614ms (next.js: 36ms, application-code: 578ms)
+ GET / 200 in 1016ms (next.js: 21ms, application-code: 995ms)
+ GET /ask 200 in 658ms (next.js: 19ms, application-code: 639ms)
+[browser] ./src/app/ask/page.tsx:267:105
+Error: Expected '</', got 'jsx text'
+  265 | ...{busy ? "Recalling…" : "Diagnose with this context →"}
+  266 | ...button>
+> 267 | ...utton onClick={() => setPhase("question")} className="btn btn-ghost">Back</section-but...
+      |                                                                                              
+> 268 | ...v>
+      |    ^^^^^^^^^^
+  269 | ...ion>
+  270 | ...
+  271 | ...
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/ask/page.tsx [Client Component Browser]
+    ./src/app/ask/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/ask/page.tsx [Client Component SSR]
+    ./src/app/ask/page.tsx [Server Component] 
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ POST /api/ask 200 in 779ms (next.js: 18ms, application-code: 761ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ GET /cards/card_gql_timeout 200 in 500ms (next.js: 69ms, application-code: 431ms)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ GET /cards/card_gql_timeout 200 in 1110ms (next.js: 47ms, application-code: 1063ms)
+ GET / 200 in 1328ms (next.js: 26ms, application-code: 1303ms)
+ GET /ask 200 in 932ms (next.js: 17ms, application-code: 915ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ POST /api/ask 200 in 1379ms (next.js: 63ms, application-code: 1316ms)
+ GET /ask 200 in 1023ms (next.js: 10ms, application-code: 1013ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ POST /api/ask 200 in 604ms (next.js: 3ms, application-code: 601ms)
+ POST /api/retain 404 in 497ms (next.js: 18ms, application-code: 480ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ POST /api/ask 200 in 1170ms (next.js: 4ms, application-code: 1166ms)
+ POST /api/retain 404 in 178ms (next.js: 3ms, application-code: 175ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ GET /ask 200 in 944ms (next.js: 13ms, application-code: 932ms)
+ GET / 200 in 1072ms (next.js: 23ms, application-code: 1049ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ GET /ask 200 in 696ms (next.js: 15ms, application-code: 681ms)
+ GET / 200 in 825ms (next.js: 17ms, application-code: 808ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+[deja-fix] ask session kept in memory only: Could not find the table 'public.ask_sessions' in the schema cache
+ POST /api/ask 200 in 974ms (next.js: 10ms, application-code: 965ms)
+[deja-fix] ask session kept in memory only: Could not find the table 'public.ask_sessions' in the schema cache
+[deja-fix] Supabase getCard unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+[deja-fix] card write kept in memory only: Could not find the table 'public.cards' in the schema cache
+[deja-fix] card write kept in memory only: Could not find the table 'public.cards' in the schema cache
+[deja-fix] card write kept in memory only: Could not find the table 'public.cards' in the schema cache
+[deja-fix] event kept in memory only: Could not find the table 'public.channel_events' in the schema cache
+ POST /api/retain 200 in 1376ms (next.js: 13ms, application-code: 1363ms)
+ GET /ask 200 in 864ms (next.js: 16ms, application-code: 848ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+[deja-fix] ask session kept in memory only: Could not find the table 'public.ask_sessions' in the schema cache
+ POST /api/ask 200 in 533ms (next.js: 6ms, application-code: 527ms)
+[deja-fix] ask session kept in memory only: Could not find the table 'public.ask_sessions' in the schema cache
+[deja-fix] Supabase getCard unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+[deja-fix] card write kept in memory only: Could not find the table 'public.cards' in the schema cache
+[deja-fix] card write kept in memory only: Could not find the table 'public.cards' in the schema cache
+[deja-fix] card write kept in memory only: Could not find the table 'public.cards' in the schema cache
+[deja-fix] event kept in memory only: Could not find the table 'public.channel_events' in the schema cache
+ POST /api/retain 200 in 1734ms (next.js: 6ms, application-code: 1728ms)
+[deja-fix] Supabase cards unavailable, using demo store: Could not find the table 'public.cards' in the schema cache
+ GET / 200 in 1040ms (next.js: 15ms, application-code: 1025ms)
