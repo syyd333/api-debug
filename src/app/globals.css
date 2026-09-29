@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+/* ─── Deja Fix light theme: white & beige ─────────────────────────────────── */
+
+:root {
+  --background: #faf7f2;      /* warm beige page background */
+  --surface: #ffffff;         /* card surfaces */
+  --surface-2: #f5f1e8;       /* beige surface tint */
+  --border: #e7e0d2;          /* warm hairline */
+  --border-strong: #d8cfbc;
+  --foreground: #292524;      /* stone-800 ink */
+  --muted: #78716c;           /* stone-500 */
+  --accent: #0f766e;          /* teal-700 — trust */
+  --accent-soft: #ccfbf1;
+  --amber-ink: #b45309;
+  --rose-ink: #be123c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(1200px 500px at 15% -10%, rgba(15, 118, 110, 0.06), transparent 60%),
+    radial-gradient(900px 400px at 90% 0%, rgba(217, 119, 6, 0.05), transparent 55%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  transition: background-color 0.3s ease;
+}
+
+/* Surfaces */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.04), 0 4px 14px rgba(41, 37, 36, 0.03);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+.panel-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(41, 37, 36, 0.06), 0 12px 28px rgba(41, 37, 36, 0.08);
+  border-color: var(--border-strong);
+}
+
+/* Chips / badges */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 0.1rem 0.55rem;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chip-accent { border-color: rgba(15,118,110,.25); background: var(--accent-soft); color: var(--accent); }
+.chip-amber  { border-color: rgba(180,83,9,.25);  background: #fef3c7; color: var(--amber-ink); }
+.chip-rose   { border-color: rgba(190,18,60,.22); background: #ffe4e6; color: var(--rose-ink); }
+.chip-stone  { border-color: var(--border-strong); background: #eee9dd; color: #57534e; }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(135deg, #0f766e, #0d9488);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.35);
+}
+.btn-primary:hover { box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-ghost {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: #57534e;
+}
+.btn-ghost:hover { border-color: #b8ac93; color: #292524; background: #fdfbf6; }
+.btn-xs { padding: 0.25rem 0.7rem; font-size: 12px; border-radius: 0.5rem; }
+
+/* Inputs */
+.input {
+  width: 100%;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input::placeholder { color: #a8a29e; }
+.input:focus {
+  outline: none;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-up-1 { animation-delay: 0.05s; }
+.animate-fade-up-2 { animation-delay: 0.12s; }
+.animate-fade-up-3 { animation-delay: 0.2s; }
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.animate-pulse-soft { animation: pulseSoft 2.2s ease-in-out infinite; }
+
+::selection { background: rgba(13, 148, 136, 0.18); }
+
+/* Slim scrollbars on beige */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd3bf; border-radius: 8px; border: 2px solid var(--background); }
+::-webkit-scrollbar-thumb:hover { background: #c9bda2; }
